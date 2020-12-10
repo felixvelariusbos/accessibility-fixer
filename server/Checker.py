@@ -61,7 +61,6 @@ class Checker(object):
         
         # find all the data that matches this URL
         data = dataset[dataset['url'] == url]
-        
         return data.to_dict('records')
  
     def check_and_save(self, url):
