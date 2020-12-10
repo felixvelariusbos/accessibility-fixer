@@ -1,4 +1,4 @@
-
+from bs4 import BeautifulSoup
 
 class Fixer(object):
 
@@ -26,16 +26,28 @@ class Fixer(object):
         for error in errors:
             print("working on error of type %s" % error['type'])
             
-            # get the correct subfixer
-            if error['type'] in self.fixers:
-                subfixer = self.fixer[error['type']]
-            else:
-                subfixer = self.default_fixer
+            # get the window of HTML (just the CSS Selector)
+            selector = error['selector']
+            html = html.lower() # pre process to make the same
+            soup = BeautifulSoup(html, 'lxml')
+
+            window = soup.select(selector)[0]
+
+            if len(window) > 0:
+                # get the correct subfixer
+                if error['type'] in self.fixers:
+                    subfixer = self.fixer[error['type']]
+                else:
+                    subfixer = self.default_fixer
+                    
+                # get the better window
+                better_window = subfixer.fix(error, window) # make this not HTML
                 
-            # get the better window
-            better_window = subfixer.fix(error, html) # make this not HTML
+                
+                # replace the old window with the new in the html
+            else:
+                print("css selector is no longer valid!!!")
             
-            # replace the old window with the new in the html
             
         return html
                 
