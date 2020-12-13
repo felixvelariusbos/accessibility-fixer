@@ -104,7 +104,9 @@ class SubFixer(object):
             2. Ignore any stopwords or non-alphabetical words
             3. Ignore anything that is not a noun, pronoun, or verb
             
-        KNOWN ISSUES: for some reason "submit" is a proper noun?
+        KNOWN ISSUES: 
+            for some reason "submit" is a proper noun?
+            "next" is considered a stop word
             
         Input:
             attr: a string to parse
@@ -112,6 +114,8 @@ class SubFixer(object):
             a list of attributes (or empty string if there were no good ones)
         """
     
+        valid_pos = ['NOUN', 'PRON', 'VERB', 'ADJ', 'ADV', 'PROPN']
+        
         # split things up so we have a list
         attrs = re.split(r'_|-|\W|/', attr)
         
@@ -120,7 +124,7 @@ class SubFixer(object):
         doc = nlp(' '.join(attrs))
         for token in doc:
             if not (not token.is_alpha or token.is_stop or 
-                    token.pos_ not in ['NOUN', 'PRON', 'VERB', 'ADJ', 'PROPN']):
+                    token.pos_ not in valid_pos):
                 
                 # a bit hackish, but also kick out anything <4 chars; that's
                 # usually noise
@@ -153,7 +157,8 @@ class SubFixer(object):
                     all_attrs = all_attrs + attr
                 
         for child in item.children:
-            all_attrs = self._add_attrs_to_list(child, all_attrs)
+            if type(child) == type(item):
+                all_attrs = self._add_attrs_to_list(child, all_attrs)
                 
         
         return all_attrs
