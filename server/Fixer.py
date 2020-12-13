@@ -201,32 +201,105 @@ class EmptyLinkFixer(SubFixer):
     
 class ContrastFixer(SubFixer):
 
+    def _hex_to_rgb(self, color):
+        """
+        Give the hex string, convert to an RGB group
+        
+        returns list of ints [r,g,b]
+        """
+        
+        rgbs = [color[1:3], color[3:5], color[5:]]
+        rgb = [int(rgbs[0], base=16), 
+               int(rgbs[1], base=16), 
+               int(rgbs[2], base=16)]
+        return rgb
+        
+    def _rgb_to_hsl(self, rgb):
+        """
+        Given the list of [r,g,b] (from _hex_to_rgb), convert
+        to a HSL group
+        
+        based on formulas here:
+        https://www.rapidtables.com/convert/color/rgb-to-hsl.html
+        
+        returns a list of ints [h,s,l]
+        """
+        
+        r_prime = rgb[0] / 255
+        g_prime = rgb[1] / 255
+        b_prime = rgb[2] / 255
+        
+        c_max_int = max(rgb)
+        c_max = max(r_prime, g_prime, b_prime)
+        c_min = min(r_prime, g_prime, b_prime)
+        
+        delta = c_max - c_min
+        
+        # calculate lum
+        lum = (c_max + c_min) / 2
+        
+        # calculate sat
+        if 0 == delta:
+            sat = 0
+        else:
+            sat = delta / (1 - abs(2*lum - 1))
+            
+        # calculate hue
+        if 0 == delta:
+            hue = 0
+        elif c_max_int == rgb[0]:
+            hue = 60 * (((g_prime-b_prime) / delta) % 6)
+        elif c_max_int == rgb[1]:
+            hue = 60 * (((b_prime-r_prime) / delta) + 2)
+        else: #if c_max_int == rgb[2]:
+            hue = 60 * (((r_prime-g_prime) / delta) + 4)
+        
+        return [hue, sat, lum]
+        
+    def _stringify_hsl(self, hsl):
+        """
+        Given the HSL tuple, convert into a CSS friendly version
+        """
+    
+    
+        hue = int(hsl[0])
+        sat = str(int(hsl[1] * 100)) + '%'
+        lum = str(int(hsl[2] * 100)) + '%'
+        
+        return 'hsl(%d %s %s)' % (hue, sat, lum)
+        
+
     def fix(self, error, window):
     
         contrast = error['ratio']
         bg = error['background']
         fg = error['foreground']
+
+        # convert bg and fg to rgb
+        bg = self._hex_to_rgb(bg)
+        fg = self._hex_to_rgb(fg)
         
-        # preprocess to make into a hex num
-        bg_num = int('0x' + bg[1:], base=16)
-        fg_num = int('0x' + fg[1:], base=16)
+        # convert bg and fg to hsl
+        bg_hsl = self._rgb_to_hsl(bg)
+        fg_hsl = self._rgb_to_hsl(fg)
         
-        # TEST TEST TEST
-        # make a quick heuristic for testing purposes.
-        # if it's light background, darken the foreground
-        # if it's a dark background, lighten the foreground
+        # if bg_lum is > .5, darken fg
+        # else, brighten fg
+        if bg_hsl[2] >= .65:
+            fg_hsl[2] = max (fg_hsl[2] - .3, 0.0)
         
-        if bg_num > 0x666666:
-            fg = fg[:1] + '00' + fg[3:]
         else:
-            fg = fg[:1] + 'E' + fg[2] + 'E' + fg[4] + 'E' + fg[6]
-        # END TEST
+            fg_hsl[2] = min(fg_hsl[2] + .3, 1.0)
+            
+        
+        # convert the new fg hsl to a string
+        fg_str = self._stringify_hsl(fg_hsl) 
     
         # create a window with our new data
         if 'style' in window.attrs:
-            window['style'] += ';color: %s !important;' % fg
+            window['style'] += ';color: %s !important;' % fg_str
         else:
-            window['style'] = 'color: %s !important;' % fg
+            window['style'] = 'color: %s !important;' % fg_str
             
         # note we don't actually have to return because BS is pass by reference, so we
         # just changed the original HTML
