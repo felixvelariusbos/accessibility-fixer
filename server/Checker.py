@@ -217,7 +217,7 @@ if __name__ == "__main__":
     #urls = ['https://yahoo.com', 'https://odu.edu', 'https://www.txstate.edu/',
     #        'https://wikipedia.org', 'https://www.virginia.gov/']
     
-    urls = ['https://nasa.gov', 'https://www.nhc.noaa.gov/', 'https://www.irs.gov/'] 
+    urls = ['https://felixvelariusbos.github.io/'] 
     
     for url in urls:
         finder.check_and_save(url)

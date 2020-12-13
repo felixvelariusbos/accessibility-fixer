@@ -1,4 +1,10 @@
 from bs4 import BeautifulSoup
+import numpy as np
+import spacy
+import re
+
+# load up spacy model globally
+nlp = spacy.load("en_core_web_sm")
 
 class Fixer(object):
 
@@ -7,7 +13,11 @@ class Fixer(object):
     
         # create the supported fixers
         
-        self.fixers = {'contrast': ContrastFixer()}
+        self.fixers = {
+            'contrast': ContrastFixer(),
+            'link_empty': EmptyLinkFixer(),
+            'button_empty': EmptyLinkFixer(),
+        }
         self.default_fixer = SubFixer()
         return
         
@@ -85,7 +95,105 @@ class SubFixer(object):
     
         return window
     
-    #087591
+    
+    def _parse_attr(self, attr):
+        """
+        Given an attribute, clean it up by:
+            1. creating multiple attributes if this is actually multiple
+               words split by _, -, or /
+            2. Ignore any stopwords or non-alphabetical words
+            3. Ignore anything that is not a noun, pronoun, or verb
+            
+        KNOWN ISSUES: for some reason "submit" is a proper noun?
+            
+        Input:
+            attr: a string to parse
+        Outpu:
+            a list of attributes (or empty string if there were no good ones)
+        """
+    
+        # split things up so we have a list
+        attrs = re.split(r'_|-|\W|/', attr)
+        
+        # for each attr, go through and filter out any that are noise
+        better_attrs = []
+        doc = nlp(' '.join(attrs))
+        for token in doc:
+            if not (not token.is_alpha or token.is_stop or 
+                    token.pos_ not in ['NOUN', 'PRON', 'VERB', 'ADJ', 'PROPN']):
+                
+                # a bit hackish, but also kick out anything <4 chars; that's
+                # usually noise
+                if len(token.text) > 3:
+                    better_attrs.append(token.text)
+            
+        return better_attrs
+        
+    def _add_attrs_to_list(self, item, all_attrs):
+        """
+        recursively creates a list of all the attributes for
+        this item (including its children). 
+        ignores style and href attributes
+        
+        Input:
+            item : a beautifulsoup  object
+            all_attrs: list of string attributes
+        
+        returns an updated all_attrs
+        """
+        
+        for key in item.attrs:
+            # don't want to include style or url-based attributes
+            if key not in ['style','href']: 
+                attr = item[key]
+                
+                if str is type(attr):
+                    all_attrs.append(attr)
+                else:
+                    all_attrs = all_attrs + attr
+                
+        for child in item.children:
+            all_attrs = self._add_attrs_to_list(child, all_attrs)
+                
+        
+        return all_attrs
+        
+    
+    
+    
+class EmptyLinkFixer(SubFixer):
+    """
+    subfixer specialized in adding alternate text to links that don't have
+    any text or titles. 
+    
+    To do this, it looks in the attributes around to get some clues on what it
+    should be, tries to extract any important verbs or nouns, and then make some
+    informative title tag based on that.
+    """
+    
+    def fix(self, error, window):
+       
+        # collect the text from all the various attributes (this includes the href!)
+        # split the strings on spaces, dashes, and underscores to get a word list
+        # make sure to strip out any un-wanted words
+        attrs = super()._add_attrs_to_list(window, [])
+        better_attrs = []
+        for attr in attrs:
+            better_attrs = better_attrs + super()._parse_attr(attr)
+        
+        # collect the unique nouns and verbs
+        tags = list(np.unique(better_attrs))
+
+        # create a string title tag based on these
+        title = ' '.join(tags)
+
+        # add the attribute to the window
+        window['title'] = title
+        
+        return window
+       
+    
+    
 class ContrastFixer(SubFixer):
 
     def fix(self, error, window):
