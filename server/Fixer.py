@@ -17,6 +17,7 @@ class Fixer(object):
             'contrast': ContrastFixer(),
             'link_empty': EmptyLinkFixer(),
             'button_empty': EmptyLinkFixer(),
+            'text_small'  : FontSizeFixer(),
         }
         self.default_fixer = SubFixer()
         return
@@ -35,7 +36,7 @@ class Fixer(object):
         """
     
         # first, make a soup of HTML
-        html = html.lower() # pre process to make the same
+        #html = html.lower() # pre process to make the same
         soup = BeautifulSoup(html, 'lxml')
     
         for error in errors:
@@ -46,28 +47,30 @@ class Fixer(object):
             
             try:
                 window = soup.select(selector)[0]
+                
+                if len(window) > 0:
+                    # get the correct subfixer
+                    if error['type'] in self.fixers:
+                        subfixer = self.fixers[error['type']]
+                    else:
+                        subfixer = self.default_fixer
+                        
+                    # get the better window
+                    better_window = subfixer.fix(error, window) # make this not HTML
+                    
+                    
+                    # replace the old window with the new in the html
+                    # no need to, because subfixer.fix() changes in place
+                else:
+                    print("css selector is no longer valid!!!")
+                    
             except Exception as e:
                 print("could find this window! " + str(e))
 
-            if len(window) > 0:
-                # get the correct subfixer
-                if error['type'] in self.fixers:
-                    subfixer = self.fixers[error['type']]
-                else:
-                    subfixer = self.default_fixer
-                    
-                # get the better window
-                better_window = subfixer.fix(error, window) # make this not HTML
-                
-                
-                # replace the old window with the new in the html
-                # no need to, because subfixer.fix() changes in place
-            else:
-                print("css selector is no longer valid!!!")
+            
             
             
         return str(soup)
-                
         
         
 class SubFixer(object):
@@ -163,9 +166,7 @@ class SubFixer(object):
         
         return all_attrs
         
-    
-    
-    
+   
 class EmptyLinkFixer(SubFixer):
     """
     subfixer specialized in adding alternate text to links that don't have
@@ -197,7 +198,6 @@ class EmptyLinkFixer(SubFixer):
         
         return window
        
-    
     
 class ContrastFixer(SubFixer):
 
@@ -305,4 +305,20 @@ class ContrastFixer(SubFixer):
         # just changed the original HTML
         return window
         
+        
+class FontSizeFixer(SubFixer):
+    """
+    Class specialized in forcing fonts to be bigger if they are not
+    big enough. Specifically, forces it to be 12 pt
+    """
+
+    def fix(self, error, window):
+     
+        # create a window with our new data
+        if 'style' in window.attrs:
+            window['style'] += ';font-size: 12pt !important;' 
+        else:
+            window['style'] = 'font-size: 12pt !important;'    
+    
+        return window
     
