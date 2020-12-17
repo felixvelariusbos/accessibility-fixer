@@ -2,6 +2,7 @@ from bs4 import BeautifulSoup
 import numpy as np
 import spacy
 import re
+import colorsys # why was this wonderful thing hiDING OMG WASTED SO MUCH TIME
 
 # load up spacy model globally
 nlp = spacy.load("en_core_web_sm")
@@ -18,6 +19,7 @@ class Fixer(object):
             'link_empty': EmptyLinkFixer(),
             'button_empty': EmptyLinkFixer(),
             'text_small'  : FontSizeFixer(),
+            'table_layout': TableLayoutFixer(),
         }
         self.default_fixer = SubFixer()
         return
@@ -44,6 +46,12 @@ class Fixer(object):
             
             # get the window of HTML (just the CSS Selector)
             selector = error['selector']
+            
+            # hack: if this is a table_layout error, need to walk
+            # back to get the actual table selector since WAVE gives
+            # us the tr/td :/
+            if error['type'] == 'table_layout':
+                selector = selector[:selector.rfind('table') + 5]
             
             try:
                 window = soup.select(selector)[0]
@@ -269,6 +277,38 @@ class ContrastFixer(SubFixer):
         return 'hsl(%d %s %s)' % (hue, sat, lum)
         
 
+    def _hsl_to_hex(self, hsl):
+        """
+        Given the hsl list ([h,s,l]), return the hex string
+        
+        Input:
+            [h,s,l]
+        Output:
+            Hex string like #ffffff (note it lacks the #)
+        """
+
+        # use my new favorite library to convert to RGB tuple
+        rgb = colorsys.hls_to_rgb(hsl[0]/360, hsl[2], hsl[1])
+        r = rgb[0] * 255
+        g = rgb[1] * 255
+        b = rgb[2] * 255
+        
+        # convert tuple to hex string (don't worry about it)
+        r_h = hex(round(r))[2:]
+        if len(r_h) < 2:
+            r_h = '0' + r_h
+            
+        g_h = hex(round(g))[2:]
+        if len(g_h) < 2:
+            g_h = '0' + g_h
+            
+        b_h = hex(round(b))[2:]
+        if len(b_h) < 2:
+            b_h = '0' + b_h
+            
+        hex_str = '#' + r_h + g_h + b_h
+        return hex_str
+
     def fix(self, error, window):
     
         contrast = error['ratio']
@@ -321,4 +361,19 @@ class FontSizeFixer(SubFixer):
             window['style'] = 'font-size: 12pt !important;'    
     
         return window
+    
+class TableLayoutFixer(SubFixer):
+    """
+    Fixer specialized in correcting tables that are being used as layout.
+    
+    Does this by adding a "role:presentation" aria label to the <table>
+    """
+    
+    def fix(self, error, window):
+        
+        # i really probably should do more than this, but it works?
+        window['role'] = 'presentation'
+        
+        return window
+    
     
