@@ -35,8 +35,10 @@ def find_and_fix():
         html = fo.read()
     
     # END TESTING
+    # START PRODUCTION
     # errors = checker.check(url)
     # html = requests.get(url)
+    # END PRODUCTION
     
     # fix as many errors as possible
     better_html = fixer.fix_all(errors, html)

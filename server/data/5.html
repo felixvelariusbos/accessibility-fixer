@@ -1,0 +1,100 @@
+<html>
+
+<head>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.5.0/css/fontawesome.min.css">
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.5.0/css/regular.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.5.0/css/solid.min.css">
+    <style>
+        #bad-contrast-light {
+            border: 1px solid black;
+            padding: 10px;
+            color: #48a8c6;
+            background-color: #ffffff;
+        }
+    
+        #bad-contrast-dark {
+            border: 1px solid black;
+            padding: 10px;
+            color: #0000FF;
+            background-color: #000000;
+        }
+        
+        #different-contrast{ 
+            border: 1px solid black;
+            padding: 10px;
+            color: #8D5AF0;
+            background-color: #CD6CD0;
+        }
+        
+        #good-contrast{ 
+            border: 1px solid black;
+            padding: 10px;
+            color: #DDE350;
+            background-color: #640700;
+        }
+        
+        #too-small-text {
+            border: 1px solid black;
+            padding: 10px;
+            font-size: 7pt;
+        }
+        
+    </style>
+
+</head>
+
+<body>
+
+    <div class="header">
+        <h1>Hello World!</h1>
+        <div class="navigation">
+            <ul>
+                <li><a href="/home"><i class="fas fa-home"></i></a></li>
+                <li><a href="/about-us"><i class="far fa-address-card"></i></a></li>
+                <li><a href="/calendar"><i class="fas fa-calendar-alt"></i></a></li>
+            </ul>
+        </div>
+    </div>
+    
+    
+    <p>This site is set up to test out the various accessiblity errors to fix</p>
+
+    <p id="bad-contrast-light">
+        The content in here has very bad contrast with the light text.
+    </p>
+
+    <p id="bad-contrast-dark">
+        This content is very hard to see as well, with the dark background. This could happen if you put on a link with a dark mode, but don't update the link color.
+    </p>
+   
+    <p id="different-contrast">
+        This is different but still a contrast issue.
+    </p>
+
+    <p id="good-contrast">
+        This text has a contrast ratio of 9.65, so it's good! 
+    </p>
+    
+    <p id="too-small-text">
+        The text in here is way too small to be readible.
+    </p>
+    
+    
+    <a href="#" class="previous navigate"><i class="fas fa-chevron-left"></i></a>
+    <a href="#" class="next navigate"><i class="fas fa-chevron-right"></i></a>
+   
+   
+    
+   
+    <form> 
+    
+        Name: 
+        <input name="name"/> 
+        <button type="submit"><i class="fas fa-search"></i></button>
+    
+    </form>
+
+
+</body>
+</html>

@@ -10,8 +10,7 @@ class Checker(object):
     location as best as it can
     """
     def __init__(self):
-        self._wave_key = "uV4b9SR11819" #this is the real one
-        #self._wave_key = "Z7a4FBT41820" # this is the one 'I'm using to test around with
+        self._wave_key = "" #fill in with your WAVE API KEY
         self.DATA_FILE = 'data/sample_errors.csv'
         return
         
@@ -202,44 +201,16 @@ class Checker(object):
         return s
         
         
-    
-        
 if __name__ == "__main__":
-
-    import pandas as pd
-    import os
-    from bs4 import BeautifulSoup
-    from requests.exceptions import ConnectionError
 
     # make the checker
     finder = Checker()
-    
-    #urls = ['https://yahoo.com', 'https://odu.edu', 'https://www.txstate.edu/',
-    #        'https://wikipedia.org', 'https://www.virginia.gov/']
     
     urls = ['https://felixvelariusbos.github.io/jaxa.html', 'https://felixvelariusbos.github.io/el_mundo.html'] 
     
     for url in urls:
         finder.check_and_save(url)
     
-    # # get the content from the url
-    # url = 'https://yahoo.com'
-    # site_name = 'YahooHome'
-    # x = requests.get(url)
-    # x_new = x.text.lower() # preprocess because the beautiful soup thing (for now) has issues with capitalization 
-    # soup = BeautifulSoup(x_new, 'lxml')
-    
-    # # get the accessibility results (only if we haven't done it yet!)
-    # filename = site_name + '.csv'
-    # if os.path.isfile(site_name + '.csv'):
-        # dataset = pd.read_csv(filename)
-    # else:
-        # results = checker.check(url)
-        # dataset = pd.DataFrame(results)
-    
-        # # also save it so we don't have to make this request later. :) Save some money!
-        # dataset.to_csv(filename)
-
 
 
 
