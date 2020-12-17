@@ -1,11 +1,15 @@
 from bs4 import BeautifulSoup
 import numpy as np
+import pandas as pd
 import spacy
 import re
 import colorsys # why was this wonderful thing hiDING OMG WASTED SO MUCH TIME
+from spacy_langdetect import LanguageDetector
+import bs4
 
 # load up spacy model globally
 nlp = spacy.load("en_core_web_sm")
+nlp.add_pipe(LanguageDetector(), name='language_detector', last=True)
 
 class Fixer(object):
 
@@ -20,6 +24,7 @@ class Fixer(object):
             'button_empty': EmptyLinkFixer(),
             'text_small'  : FontSizeFixer(),
             'table_layout': TableLayoutFixer(),
+            'language_missing': MissingLangFixer(), 
         }
         self.default_fixer = SubFixer()
         return
@@ -54,9 +59,12 @@ class Fixer(object):
                 selector = selector[:selector.rfind('table') + 5]
             
             try:
-                window = soup.select(selector)[0]
-                
-                if len(window) > 0:
+                # if the selector isn't there, we're selecting "ALL" the HTML
+                if selector == '' or pd.isna(selector):
+                    window = soup.find('html')
+                else:
+                    window = soup.select_one(selector)
+                if window is not None:
                     # get the correct subfixer
                     if error['type'] in self.fixers:
                         subfixer = self.fixers[error['type']]
@@ -73,10 +81,7 @@ class Fixer(object):
                     print("css selector is no longer valid!!!")
                     
             except Exception as e:
-                print("could find this window! " + str(e))
-
-            
-            
+                print("couldnt find this window! " + str(e))
             
         return str(soup)
         
@@ -105,6 +110,28 @@ class SubFixer(object):
         print("No subfixer implemented; returning the window as is")
     
         return window
+    
+    
+    
+    def _collect_all_content(self, element):
+        """
+        Finds the TEXT content and adds it all to one string        
+        Does this recursively for all children of the element
+        
+        Input:
+            element: a beautifulsoup element
+        Output:
+            content: a string of all the elements text+its children
+        """
+        content = ''
+        for child in element.children:
+
+            if type(child) == bs4.element.NavigableString:
+                content = content + ' ' + str(child)
+            else:
+                content = content + self._collect_all_content(child)
+                
+        return content
     
     
     def _parse_attr(self, attr):
@@ -376,4 +403,39 @@ class TableLayoutFixer(SubFixer):
         
         return window
     
+    
+class MissingLangFixer(SubFixer):
+    """
+    Fixer specialized in detecting and adding in a language attribute
+    (when none was provided). Make sure to provide the BeautifulSoup 
+    <html>...</html>, since there is no CSS selector for these errors.
+    We need to be able to edit the <head>!
+    """
+
+    def fix(self, error, window):
+        
+        # find the body
+        body = window.find('body')
+        
+        if not body:
+            print("no body tag! cannot detect language")
+            return window
+        
+        # get a big string of content
+        content = super()._collect_all_content(body)
+        
+        # calculate the language
+        doc = nlp(content)
+        language = doc._.language
+        
+        # add that langauge to the html tag
+        if len(language) > 0:
+            #html_tag = window.find('html')
+            html_tag = window
+            html_tag.attrs['lang'] = language['language']
+        else:
+            print("could not figure out language!")
+        
+        # return!
+        return window
     
